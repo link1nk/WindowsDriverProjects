@@ -1,11 +1,20 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.13.35931.197 d17.13
+VisualStudioVersion = 17.13.35931.197
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NamedEventListenerKM", "NamedEventListenerKM\NamedEventListenerKM.vcxproj", "{34D3399A-A796-DA60-FA20-DF217A9D8B72}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NamedEventListenerUM", "NamedEventListenerUM\NamedEventListenerUM.vcxproj", "{85FB86E4-7382-43F1-9376-AA37509BA01E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MessengerKM", "MessengerKM\MessengerKM.vcxproj", "{43E0EDC3-9DCD-6082-34C3-C8F76D38457B}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MessengerUM", "MessengerUM\MessengerUM.vcxproj", "{1FF0B8D7-DAB8-439F-8E5A-1088D5810AB4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,6 +44,26 @@ Global
 		{85FB86E4-7382-43F1-9376-AA37509BA01E}.Release|ARM64.Build.0 = Release|x64
 		{85FB86E4-7382-43F1-9376-AA37509BA01E}.Release|x64.ActiveCfg = Release|x64
 		{85FB86E4-7382-43F1-9376-AA37509BA01E}.Release|x64.Build.0 = Release|x64
+		{43E0EDC3-9DCD-6082-34C3-C8F76D38457B}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{43E0EDC3-9DCD-6082-34C3-C8F76D38457B}.Debug|ARM64.Build.0 = Debug|ARM64
+		{43E0EDC3-9DCD-6082-34C3-C8F76D38457B}.Debug|ARM64.Deploy.0 = Debug|ARM64
+		{43E0EDC3-9DCD-6082-34C3-C8F76D38457B}.Debug|x64.ActiveCfg = Debug|x64
+		{43E0EDC3-9DCD-6082-34C3-C8F76D38457B}.Debug|x64.Build.0 = Debug|x64
+		{43E0EDC3-9DCD-6082-34C3-C8F76D38457B}.Debug|x64.Deploy.0 = Debug|x64
+		{43E0EDC3-9DCD-6082-34C3-C8F76D38457B}.Release|ARM64.ActiveCfg = Release|ARM64
+		{43E0EDC3-9DCD-6082-34C3-C8F76D38457B}.Release|ARM64.Build.0 = Release|ARM64
+		{43E0EDC3-9DCD-6082-34C3-C8F76D38457B}.Release|ARM64.Deploy.0 = Release|ARM64
+		{43E0EDC3-9DCD-6082-34C3-C8F76D38457B}.Release|x64.ActiveCfg = Release|x64
+		{43E0EDC3-9DCD-6082-34C3-C8F76D38457B}.Release|x64.Build.0 = Release|x64
+		{43E0EDC3-9DCD-6082-34C3-C8F76D38457B}.Release|x64.Deploy.0 = Release|x64
+		{1FF0B8D7-DAB8-439F-8E5A-1088D5810AB4}.Debug|ARM64.ActiveCfg = Debug|x64
+		{1FF0B8D7-DAB8-439F-8E5A-1088D5810AB4}.Debug|ARM64.Build.0 = Debug|x64
+		{1FF0B8D7-DAB8-439F-8E5A-1088D5810AB4}.Debug|x64.ActiveCfg = Debug|x64
+		{1FF0B8D7-DAB8-439F-8E5A-1088D5810AB4}.Debug|x64.Build.0 = Debug|x64
+		{1FF0B8D7-DAB8-439F-8E5A-1088D5810AB4}.Release|ARM64.ActiveCfg = Release|x64
+		{1FF0B8D7-DAB8-439F-8E5A-1088D5810AB4}.Release|ARM64.Build.0 = Release|x64
+		{1FF0B8D7-DAB8-439F-8E5A-1088D5810AB4}.Release|x64.ActiveCfg = Release|x64
+		{1FF0B8D7-DAB8-439F-8E5A-1088D5810AB4}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
