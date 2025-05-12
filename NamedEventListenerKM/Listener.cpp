@@ -6,21 +6,14 @@
 UNICODE_STRING g_NamedEvents[EVENTS_NUMBER];
 HANDLE         g_hEvents[EVENTS_NUMBER];
 PKEVENT        g_pEvents[EVENTS_NUMBER];
+KWAIT_BLOCK    g_WaitBlockArray[EVENTS_NUMBER];
 
 void StartListen(ULONG msec)
 {
-	PKWAIT_BLOCK WaitBlockArray = (PKWAIT_BLOCK) ExAllocatePool2(POOL_FLAG_NON_PAGED, sizeof(KWAIT_BLOCK) * EVENTS_NUMBER, 'evnt');
-
-	if (WaitBlockArray == nullptr)
-	{
-		DbgPrint("Erro ao alocar memoria para KWAIT_BLOCK\n");
-		return;
-	}
-
 	LARGE_INTEGER Interval;
 	Interval.QuadPart = -10000LL * msec;
 
-	NTSTATUS Status = KeWaitForMultipleObjects(EVENTS_NUMBER, (PVOID*)g_pEvents, WaitAny, Executive, KernelMode, FALSE, &Interval, WaitBlockArray);
+	NTSTATUS Status = KeWaitForMultipleObjects(EVENTS_NUMBER, (PVOID*)g_pEvents, WaitAny, Executive, KernelMode, FALSE, &Interval, g_WaitBlockArray);
 
 	if (Status > 0 && Status < EVENTS_NUMBER)
 	{
@@ -32,8 +25,6 @@ void StartListen(ULONG msec)
 	{
 		DbgPrint("Timeout!\n");
 	}
-
-	ExFreePool(WaitBlockArray);
 }
 
 NTSTATUS ListenerCreateClose(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP pIrp)
