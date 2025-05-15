@@ -30,7 +30,12 @@ NTSTATUS ZeroRead(_In_ PDEVICE_OBJECT /*DeviceObject*/, _In_ PIRP Irp)
 
 	auto Buffer = MmGetSystemAddressForMdlSafe(Irp->MdlAddress, NormalPagePriority);
 
-	memset(&Buffer, 0, Length);
+	if (!Buffer)
+	{
+		return CompleteIrp(Irp, STATUS_INSUFFICIENT_RESOURCES);
+	}
+
+	memset(Buffer, 0, Length);
 
 	return CompleteIrp(Irp, STATUS_SUCCESS, Length);
 }

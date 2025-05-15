@@ -9,7 +9,7 @@ int Error(const char* err)
 
 int main(void)
 {
-	HANDLE hZero = CreateFile(L"\\\\.\\Zero", GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, NULL);
+	HANDLE hZero = CreateFile(L"\\\\.\\Zero", GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
 
 	if (hZero == INVALID_HANDLE_VALUE)
 	{
@@ -26,7 +26,7 @@ int main(void)
 	/// Testando Read
 	DWORD returned;
 
-	BOOL success = ReadFile(hZero, &buffer, sizeof buffer, &returned, nullptr);
+	BOOL success = ReadFile(hZero, buffer, sizeof buffer, &returned, nullptr);
 
 	if (!success)
 	{
@@ -48,7 +48,7 @@ int main(void)
 	}
 
 	/// Testando Write
-	BYTE buffer2[1024];
+	BYTE buffer2[1024]{0};
 
 	success = WriteFile(hZero, buffer2, sizeof(buffer2), &returned, nullptr);
 
