@@ -1,5 +1,6 @@
 #include <Windows.h>
 #include <iostream>
+#include "..\Zero\ZeroCommon.h"
 
 int Error(const char* err)
 {
@@ -16,6 +17,9 @@ int main(void)
 		return Error("Não foi possivel abrir o device object");
 	}
 
+	/// Testando Read
+	std::cout << "Testando read....\n";
+
 	BYTE buffer[64];
 
 	for (int i{}; i < 64; i++)
@@ -23,7 +27,6 @@ int main(void)
 		buffer[i] = i;
 	}
 
-	/// Testando Read
 	DWORD returned;
 
 	BOOL success = ReadFile(hZero, buffer, sizeof buffer, &returned, nullptr);
@@ -48,6 +51,8 @@ int main(void)
 	}
 
 	/// Testando Write
+	std::cout << "Testando write....\n";
+
 	BYTE buffer2[1024]{0};
 
 	success = WriteFile(hZero, buffer2, sizeof(buffer2), &returned, nullptr);
@@ -61,6 +66,19 @@ int main(void)
 	{
 		printf("Contagem errada de bytes\n");
 	}
+
+	/// Testando IOCTL
+	std::cout << "Testando IOCTL....\n";
+
+	ZeroStats stats;
+
+	if (!DeviceIoControl(hZero, IOCTL_ZERO_GET_STATS, nullptr, 0, &stats, sizeof stats, &returned, nullptr))
+	{
+		return Error("Falha em DeviceIoControl");
+	}
+
+	std::cout << "Total Read: " << stats.TotalRead << ", Total Write : " << stats.TotalWritten << '\n';
+
 	CloseHandle(hZero);
 
 }
