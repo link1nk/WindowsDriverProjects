@@ -118,8 +118,6 @@ NTSTATUS SayHelloDeviceControl(_In_ PDEVICE_OBJECT /*DeviceObject*/, _In_ PIRP I
 
 	KeInitializeEvent(DpcContextWrapper->Event, NotificationEvent, FALSE);
 
-	bool FreeResources = FALSE;
-
 	switch (DIC.IoControlCode)
 	{
 	case IOCTL_SAYHELLO_WRITE_NAME:
@@ -127,14 +125,12 @@ NTSTATUS SayHelloDeviceControl(_In_ PDEVICE_OBJECT /*DeviceObject*/, _In_ PIRP I
 		if (Irp->AssociatedIrp.SystemBuffer == nullptr)
 		{
 			Status = STATUS_INVALID_PARAMETER;
-			FreeResources = TRUE;
 			break;
 		}
 
 		if (DIC.InputBufferLength < sizeof (Person))
 		{
 			Status = STATUS_BUFFER_TOO_SMALL;
-			FreeResources = TRUE;
 			break;
 		}
 
@@ -143,7 +139,6 @@ NTSTATUS SayHelloDeviceControl(_In_ PDEVICE_OBJECT /*DeviceObject*/, _In_ PIRP I
 		if (Buffer == nullptr)
 		{
 			Status = STATUS_INVALID_PARAMETER;
-			FreeResources = TRUE;
 			break;
 		}
 
@@ -151,7 +146,6 @@ NTSTATUS SayHelloDeviceControl(_In_ PDEVICE_OBJECT /*DeviceObject*/, _In_ PIRP I
 
 		if (!CopiedPerson) {
 			Status = STATUS_INSUFFICIENT_RESOURCES;
-			FreeResources = TRUE;
 			break;
 		}
 
@@ -167,18 +161,14 @@ NTSTATUS SayHelloDeviceControl(_In_ PDEVICE_OBJECT /*DeviceObject*/, _In_ PIRP I
 		KeWaitForSingleObject(DpcContextWrapper->Event, Executive, KernelMode, FALSE, nullptr);
 
 		ExFreePool(DpcContextWrapper->Context.person);
-		FreeResources = TRUE;
 
 		break;
 	}
 	}
 
-	if (FreeResources)
-	{
-		ExFreePool(DpcContextWrapper->Event);
-		ExFreePool(DpcContextWrapper->Dpc);
-		ExFreePool(DpcContextWrapper);
-	}
+	ExFreePool(DpcContextWrapper->Event);
+	ExFreePool(DpcContextWrapper->Dpc);
+	ExFreePool(DpcContextWrapper);
 
 	return CompleteRequest(Irp, Status, Information);
 }
