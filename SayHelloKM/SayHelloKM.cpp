@@ -7,12 +7,12 @@ typedef struct _CONTEXT_DPCROUTINE
 } CONTEXT_DPCROUTINE, *PCONTEXT_DPCROUTINE;
 
 typedef struct _DPC_CONTEXT_WRAPPER {
-	PKTIMER Timer;
 	PKDPC Dpc;
+	PKEVENT Event;
 	CONTEXT_DPCROUTINE Context;
 } DPC_CONTEXT_WRAPPER, *PDPC_CONTEXT_WRAPPER;
 
-CHAR g_LastWrittenName[64];
+CHAR g_LastWrittenName[64] = "None";
 KSPIN_LOCK SpinLock;
 
 KDEFERRED_ROUTINE DpcRoutine;
@@ -26,10 +26,8 @@ _Use_decl_annotations_ void DpcRoutine
 )
 {
 	UNREFERENCED_PARAMETER(Dpc);
-	UNREFERENCED_PARAMETER(SystemArgument1);
+	UNREFERENCED_PARAMETER(DeferredContext);
 	UNREFERENCED_PARAMETER(SystemArgument2);
-
-	DbgPrint("Chegou aq 4\n");
 
 	if (DeferredContext == nullptr)
 	{
@@ -37,11 +35,17 @@ _Use_decl_annotations_ void DpcRoutine
 		return;
 	}
 
-	auto DpcContextWrapper = reinterpret_cast<PDPC_CONTEXT_WRAPPER>(DeferredContext);
-	auto UserBuffer = DpcContextWrapper->Context;
+	auto DpcContextWrapper = reinterpret_cast<PDPC_CONTEXT_WRAPPER>(SystemArgument1);
 
 	do
 	{
+		if (DpcContextWrapper == nullptr)
+		{
+			break;
+		}
+
+		auto UserBuffer = DpcContextWrapper->Context;
+
 		if (!UserBuffer.person)
 		{
 			DbgPrint("[DPC] Error: Person pointer is NULL\n");
@@ -52,8 +56,6 @@ _Use_decl_annotations_ void DpcRoutine
 
 		DbgPrint("[DPC] -> Hello %s!\n", UserBuffer.person->Name);
 
-		DbgPrint("Chegou aq 5\n");
-
 		KeAcquireSpinLockAtDpcLevel(&SpinLock);
 		DbgPrint("[DPC - SpinLock] -> Last Written Name: %s\n", g_LastWrittenName);
 		strcpy_s(g_LastWrittenName, sizeof(g_LastWrittenName), UserBuffer.person->Name);
@@ -61,7 +63,10 @@ _Use_decl_annotations_ void DpcRoutine
 
 	} while (false);
 
-	DbgPrint("Chegou aq 6\n");
+	if (DpcContextWrapper != nullptr)
+	{
+		KeSetEvent(DpcContextWrapper->Event, IO_NO_INCREMENT, FALSE);
+	}
 }
 
 NTSTATUS CompleteRequest(_In_ PIRP Irp, _In_  NTSTATUS Status = STATUS_SUCCESS, _In_ ULONG Information = 0)
@@ -76,7 +81,6 @@ NTSTATUS CompleteRequest(_In_ PIRP Irp, _In_  NTSTATUS Status = STATUS_SUCCESS, 
 
 NTSTATUS SayHelloDeviceControl(_In_ PDEVICE_OBJECT /*DeviceObject*/, _In_ PIRP Irp)
 {
-	DbgPrint("Chegou aq 1\n");
 	auto IrpSp = IoGetCurrentIrpStackLocation(Irp);
 	auto& DIC = IrpSp->Parameters.DeviceIoControl;
 	ULONG Information = 0;
@@ -102,9 +106,9 @@ NTSTATUS SayHelloDeviceControl(_In_ PDEVICE_OBJECT /*DeviceObject*/, _In_ PIRP I
 		return CompleteRequest(Irp, STATUS_SUCCESS, Information);
 	}
 
-	DpcContextWrapper->Timer = reinterpret_cast<PKTIMER>(ExAllocatePool2(POOL_FLAG_NON_PAGED, sizeof(KTIMER), 'abc3'));
+	DpcContextWrapper->Event = reinterpret_cast<PKEVENT>(ExAllocatePool2(POOL_FLAG_NON_PAGED, sizeof(KEVENT), 'abc3'));
 
-	if (DpcContextWrapper->Timer == nullptr)
+	if (DpcContextWrapper->Event == nullptr)
 	{
 		Status = STATUS_INSUFFICIENT_RESOURCES;
 		ExFreePool(DpcContextWrapper->Dpc);
@@ -112,9 +116,9 @@ NTSTATUS SayHelloDeviceControl(_In_ PDEVICE_OBJECT /*DeviceObject*/, _In_ PIRP I
 		return CompleteRequest(Irp, STATUS_SUCCESS, Information);
 	}
 
-	bool FreeResources = FALSE;
+	KeInitializeEvent(DpcContextWrapper->Event, NotificationEvent, FALSE);
 
-	DbgPrint("Chegou aq 2\n");
+	bool FreeResources = FALSE;
 
 	switch (DIC.IoControlCode)
 	{
@@ -154,19 +158,16 @@ NTSTATUS SayHelloDeviceControl(_In_ PDEVICE_OBJECT /*DeviceObject*/, _In_ PIRP I
 		memcpy(CopiedPerson, Buffer, sizeof(Person));
 		DpcContextWrapper->Context.person = CopiedPerson;
 
-		DbgPrint("Chegou aq 3\n");
-
 		KeInitializeDpc(DpcContextWrapper->Dpc, DpcRoutine, (PVOID)DpcContextWrapper);
-
-		LARGE_INTEGER Interval;
-		Interval.QuadPart = -10000LL * Buffer->Milliseconds;
-
-		KeSetTimer(DpcContextWrapper->Timer, Interval, DpcContextWrapper->Dpc);
+		KeInsertQueueDpc(DpcContextWrapper->Dpc, DpcContextWrapper, nullptr);
 
 		Information = static_cast<ULONG>(strlen(DpcContextWrapper->Context.person->Name));
 		Status = STATUS_SUCCESS;
+	
+		KeWaitForSingleObject(DpcContextWrapper->Event, Executive, KernelMode, FALSE, nullptr);
 
-		DbgPrint("Chegou aq 7\n");
+		ExFreePool(DpcContextWrapper->Context.person);
+		FreeResources = TRUE;
 
 		break;
 	}
@@ -174,19 +175,10 @@ NTSTATUS SayHelloDeviceControl(_In_ PDEVICE_OBJECT /*DeviceObject*/, _In_ PIRP I
 
 	if (FreeResources)
 	{
-		ExFreePool(DpcContextWrapper->Timer);
+		ExFreePool(DpcContextWrapper->Event);
 		ExFreePool(DpcContextWrapper->Dpc);
 		ExFreePool(DpcContextWrapper);
 	}
-
-	KeWaitForSingleObject()
-
-	DbgPrint("Chegou aq 8\n");
-
-	ExFreePool((PVOID)DpcContextWrapper->Context.person);
-	ExFreePool((PVOID)DpcContextWrapper->Dpc);
-	ExFreePool((PVOID)DpcContextWrapper->Timer);
-	ExFreePool(DpcContextWrapper);
 
 	return CompleteRequest(Irp, Status, Information);
 }
@@ -206,8 +198,6 @@ void DriverUnload(_In_ PDRIVER_OBJECT DriverObject)
 
 extern "C" NTSTATUS DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING /*RegistryPath*/)
 {
-	DbgPrint("Inicio da driver entry\n");
-
 	DriverObject->DriverUnload = DriverUnload;
 
 	DriverObject->MajorFunction[IRP_MJ_CREATE] = SayHelloCreateClose;
@@ -238,13 +228,9 @@ extern "C" NTSTATUS DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_
 			break;
 		}
 
-		DbgPrint("Antes da função do spin lock!\n");
-
 		KeInitializeSpinLock(&SpinLock);
 
 	} while (false);
-
-	DbgPrint("Driver criado!\n");
 
 	return Status;
 }

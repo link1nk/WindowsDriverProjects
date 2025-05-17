@@ -7,5 +7,4 @@
 struct Person
 {
 	char Name[64];
-	int Milliseconds;
 };

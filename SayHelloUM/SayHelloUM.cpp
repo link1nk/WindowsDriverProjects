@@ -10,13 +10,12 @@ int Error(const char* msg)
 
 int main(int argc, char* argv[])
 {
-	if (argc < 3)
+	if (argc < 2)
 	{
-		return Error("Usage: .\\SayHelloUM.exe <milliseconds> <name>");
+		return Error("Usage: .\\SayHelloUM.exe <name>");
 	}
 
-	int milliseconds = atoi(argv[1]);
-	const char* name = argv[2];
+	const char* name = argv[1];
 
 	HANDLE hSayHello = CreateFile(L"\\\\.\\SayHello", GENERIC_WRITE | GENERIC_READ, 0, nullptr, OPEN_EXISTING, 0, NULL);
 
@@ -27,12 +26,11 @@ int main(int argc, char* argv[])
 
 	Person person;
 
-	person.Milliseconds = milliseconds;
 	strcpy_s(person.Name, sizeof person.Name, name);
 
 	DWORD returned;
 
-	BOOL ok = DeviceIoControl(hSayHello, IOCTL_SAYHELLO_WRITE_NAME, &person, sizeof person, nullptr, 0, &returned, nullptr);
+	BOOL ok = DeviceIoControl(hSayHello, IOCTL_SAYHELLO_WRITE_NAME, &person, sizeof (Person), nullptr, 0, &returned, nullptr);
 
 	if (!ok)
 	{
