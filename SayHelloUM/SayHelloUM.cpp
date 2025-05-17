@@ -24,13 +24,13 @@ int main(int argc, char* argv[])
 		return Error("Não foi possivel abrir um handle para o Device SayHello");
 	}
 
-	Person person;
+	PERSON Person;
 
-	strcpy_s(person.Name, sizeof person.Name, name);
+	strcpy_s(Person.Name, sizeof Person.Name, name);
 
 	DWORD returned;
 
-	BOOL ok = DeviceIoControl(hSayHello, IOCTL_SAYHELLO_WRITE_NAME, &person, sizeof (Person), nullptr, 0, &returned, nullptr);
+	BOOL ok = DeviceIoControl(hSayHello, IOCTL_SAYHELLO_WRITE_NAME, &Person, sizeof (Person), nullptr, 0, &returned, nullptr);
 
 	if (!ok)
 	{

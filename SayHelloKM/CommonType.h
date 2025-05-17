@@ -4,7 +4,7 @@
 
 #define IOCTL_SAYHELLO_WRITE_NAME CTL_CODE(DEVICE_SAY_HELLO, 0x800, METHOD_BUFFERED, FILE_ANY_ACCESS)
 
-struct Person
+typedef struct _PERSON
 {
 	char Name[64];
-};
+} PERSON, *PPERSON;

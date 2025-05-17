@@ -1,15 +1,10 @@
 #include <ntddk.h>
 #include "CommonType.h"
 
-typedef struct _CONTEXT_DPCROUTINE
-{
-	Person* person;
-} CONTEXT_DPCROUTINE, *PCONTEXT_DPCROUTINE;
-
 typedef struct _DPC_CONTEXT_WRAPPER {
 	PKDPC Dpc;
 	PKEVENT Event;
-	CONTEXT_DPCROUTINE Context;
+	PPERSON Person;
 } DPC_CONTEXT_WRAPPER, *PDPC_CONTEXT_WRAPPER;
 
 CHAR g_LastWrittenName[64] = "None";
@@ -44,21 +39,21 @@ _Use_decl_annotations_ void DpcRoutine
 			break;
 		}
 
-		auto UserBuffer = DpcContextWrapper->Context;
+		auto UserBuffer = DpcContextWrapper->Person;
 
-		if (!UserBuffer.person)
+		if (UserBuffer == nullptr)
 		{
 			DbgPrint("[DPC] Error: Person pointer is NULL\n");
 			break;
 		}
 
-		UserBuffer.person->Name[63] = 0;
+		UserBuffer->Name[63] = 0;
 
-		DbgPrint("[DPC] -> Hello %s!\n", UserBuffer.person->Name);
+		DbgPrint("[DPC] -> Hello %s!\n", UserBuffer->Name);
 
 		KeAcquireSpinLockAtDpcLevel(&SpinLock);
 		DbgPrint("[DPC - SpinLock] -> Last Written Name: %s\n", g_LastWrittenName);
-		strcpy_s(g_LastWrittenName, sizeof(g_LastWrittenName), UserBuffer.person->Name);
+		strcpy_s(g_LastWrittenName, sizeof(g_LastWrittenName), UserBuffer->Name);
 		KeReleaseSpinLockFromDpcLevel(&SpinLock);
 
 	} while (false);
@@ -87,7 +82,7 @@ NTSTATUS SayHelloDeviceControl(_In_ PDEVICE_OBJECT /*DeviceObject*/, _In_ PIRP I
 
 	NTSTATUS Status = STATUS_INVALID_DEVICE_REQUEST;
 
-	auto DpcContextWrapper = reinterpret_cast<PDPC_CONTEXT_WRAPPER>(ExAllocatePool2(POOL_FLAG_NON_PAGED, sizeof (DPC_CONTEXT_WRAPPER), 'abc1'));
+	auto DpcContextWrapper = reinterpret_cast<PDPC_CONTEXT_WRAPPER>(ExAllocatePool2(POOL_FLAG_NON_PAGED, sizeof (DPC_CONTEXT_WRAPPER), 'sayh'));
 
 	if (DpcContextWrapper == nullptr)
 	{
@@ -97,7 +92,7 @@ NTSTATUS SayHelloDeviceControl(_In_ PDEVICE_OBJECT /*DeviceObject*/, _In_ PIRP I
 
 	RtlZeroMemory(DpcContextWrapper, sizeof(DPC_CONTEXT_WRAPPER));
 
-	DpcContextWrapper->Dpc = reinterpret_cast<PKDPC>(ExAllocatePool2(POOL_FLAG_NON_PAGED, sizeof(KDPC), 'abc2'));
+	DpcContextWrapper->Dpc = reinterpret_cast<PKDPC>(ExAllocatePool2(POOL_FLAG_NON_PAGED, sizeof(KDPC), 'sayh'));
 
 	if (DpcContextWrapper->Dpc == nullptr)
 	{
@@ -106,7 +101,7 @@ NTSTATUS SayHelloDeviceControl(_In_ PDEVICE_OBJECT /*DeviceObject*/, _In_ PIRP I
 		return CompleteRequest(Irp, STATUS_SUCCESS, Information);
 	}
 
-	DpcContextWrapper->Event = reinterpret_cast<PKEVENT>(ExAllocatePool2(POOL_FLAG_NON_PAGED, sizeof(KEVENT), 'abc3'));
+	DpcContextWrapper->Event = reinterpret_cast<PKEVENT>(ExAllocatePool2(POOL_FLAG_NON_PAGED, sizeof(KEVENT), 'sayh'));
 
 	if (DpcContextWrapper->Event == nullptr)
 	{
@@ -128,13 +123,13 @@ NTSTATUS SayHelloDeviceControl(_In_ PDEVICE_OBJECT /*DeviceObject*/, _In_ PIRP I
 			break;
 		}
 
-		if (DIC.InputBufferLength < sizeof (Person))
+		if (DIC.InputBufferLength < sizeof (PERSON))
 		{
 			Status = STATUS_BUFFER_TOO_SMALL;
 			break;
 		}
 
-		auto Buffer = reinterpret_cast<Person*>(Irp->AssociatedIrp.SystemBuffer);
+		auto Buffer = reinterpret_cast<PPERSON>(Irp->AssociatedIrp.SystemBuffer);
 
 		if (Buffer == nullptr)
 		{
@@ -142,25 +137,25 @@ NTSTATUS SayHelloDeviceControl(_In_ PDEVICE_OBJECT /*DeviceObject*/, _In_ PIRP I
 			break;
 		}
 
-		auto CopiedPerson = reinterpret_cast<Person*>(ExAllocatePool2(POOL_FLAG_NON_PAGED, sizeof(Person), 'abc4'));
+		auto CopiedPerson = reinterpret_cast<PPERSON>(ExAllocatePool2(POOL_FLAG_NON_PAGED, sizeof(PERSON), 'sayh'));
 
 		if (!CopiedPerson) {
 			Status = STATUS_INSUFFICIENT_RESOURCES;
 			break;
 		}
 
-		memcpy(CopiedPerson, Buffer, sizeof(Person));
-		DpcContextWrapper->Context.person = CopiedPerson;
+		memcpy(CopiedPerson, Buffer, sizeof(PERSON));
+		DpcContextWrapper->Person = CopiedPerson;
 
 		KeInitializeDpc(DpcContextWrapper->Dpc, DpcRoutine, (PVOID)DpcContextWrapper);
 		KeInsertQueueDpc(DpcContextWrapper->Dpc, DpcContextWrapper, nullptr);
 
-		Information = static_cast<ULONG>(strlen(DpcContextWrapper->Context.person->Name));
+		Information = static_cast<ULONG>(strlen(DpcContextWrapper->Person->Name));
 		Status = STATUS_SUCCESS;
 	
 		KeWaitForSingleObject(DpcContextWrapper->Event, Executive, KernelMode, FALSE, nullptr);
 
-		ExFreePool(DpcContextWrapper->Context.person);
+		ExFreePool(DpcContextWrapper->Person);
 
 		break;
 	}
